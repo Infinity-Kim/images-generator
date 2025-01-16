@@ -1,0 +1,5 @@
+console.log("Hello World!");
+===DELIMITER===
+function sum(a, b) {
+  return a + b;
+}
