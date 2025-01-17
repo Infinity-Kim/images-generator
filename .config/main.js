@@ -3,87 +3,84 @@ const os = require('os');
 const { spawnSync } = require('child_process');
 const path = require('path');
 
+const isWindows = process.platform === 'win32';
+
 // Основные пути
 const OUTPUT_DIR = path.join(__dirname, '../.out');
 const TEMP_FILE = path.join(__dirname, '../temp.txt');
 const PHRASES_FILE = path.join(__dirname, '../phrases.txt');
-const USER_SETTINGS_FILE = path.join(__dirname, '../settings.json');
-const DEFAULT_SETTINGS_FILE = path.join(__dirname, 'default-settings.json');
+const DEFAULT_SETTINGS_FILE = path.join(__dirname, 'default-setting.json');
+const USER_SETTINGS_FILE = path.join(__dirname, 'settings.json');
 
-// 0. Удаляем ~/.carbon-now.json из домашней директории
-const homeDir = os.homedir();
-const carbonNowConfigPath = path.join(homeDir, '.carbon-now.json');
-
-if (fs.existsSync(carbonNowConfigPath)) {
-  fs.rmSync(carbonNowConfigPath, { force: true });
+// Удаляем ~/.carbon-now.json в начале (если нужно)
+const carbonNowConfig = path.join(os.homedir(), '.carbon-now.json');
+if (fs.existsSync(carbonNowConfig)) {
+  fs.rmSync(carbonNowConfig, { force: true });
 }
 
-
-// 1. Удаляем (если есть) и создаём каталог .out
+// 1. Очищаем и пересоздаём каталог .out
 if (fs.existsSync(OUTPUT_DIR)) {
   fs.rmSync(OUTPUT_DIR, { recursive: true, force: true });
 }
 fs.mkdirSync(OUTPUT_DIR, { recursive: true });
 
-// 2. Загружаем default-setting.json в объект
+// 2. Загружаем default-setting.json
 const defaultSettings = JSON.parse(fs.readFileSync(DEFAULT_SETTINGS_FILE, 'utf8'));
 
-// 3. Если существует settings.json, читаем и добавляем в поле custom
+// 3. Если есть settings.json, мёржим в поле custom
 if (fs.existsSync(USER_SETTINGS_FILE)) {
   const userSettings = JSON.parse(fs.readFileSync(USER_SETTINGS_FILE, 'utf8'));
-  // Если в defaultSettings уже есть custom, объединим с userSettings
-  // Если нет, инициализируем пустым объектом
   defaultSettings.custom = {
     ...(defaultSettings.custom || {}),
     ...userSettings
   };
-} else {
-  const {custom, ...rest} = defaultSettings;
-
-  // Если в defaultSettings уже есть custom, удалим его
-  if (custom) {
-    defaultSettings = rest;
-  }
 }
 
-// Формируем строку для --settings
+// 4. Подготавливаем строку настроек
 const settingsString = JSON.stringify(defaultSettings);
 
-// 2. Считываем phrases.txt и разбиваем по разделителю ===DELIMITER===
+// 5. Считываем phrases.txt и разбиваем по разделителю ===DELIMITER===
 const rawContent = fs.readFileSync(PHRASES_FILE, 'utf8');
 const data = rawContent.split('===DELIMITER===');
 
-// 3. Перебираем каждый фрагмент
 let processed = 0;
 const total = data.length;
 
 for (const chunk of data) {
   const trimmed = chunk.trim();
   if (!trimmed) {
-    // Пропускаем пустые куски (когда есть разделитель в конце или лишняя пустая строка)
     continue;
   }
 
   processed++;
   console.log(`Processing chunk: ${processed} / ${total}`);
 
-  // 3.1 Записываем фрагмент во временный файл temp.txt
-  fs.writeFileSync(TEMP_FILE, trimmed, 'utf-8');
+  fs.writeFileSync(TEMP_FILE, trimmed, 'utf8');
 
-  const args = [
-    '/c',            // флаг cmd: выполнить и выйти
-    'carbon-now',
-    'temp.txt',
-    '--save-to',
-    '.out',
-    '--settings',
-    settingsString      // здесь JSON в одинарных кавычках
-  ];
-
-  // 3.2 Вызываем carbon-now, передавая путь к файлу temp.txt
-  // Обратите внимание на указание --save-to ./.out, 
-  // чтобы все сгенерированные изображения оказались в папке .out
-  const carbonResult = spawnSync('cmd', args, { stdio: 'inherit' });
+  // В зависимости от платформы вызываем команду
+  let carbonResult;
+  
+  if (isWindows) {
+    // Windows: spawnSync('cmd','/c','carbon-now', ...)
+    carbonResult = spawnSync('cmd', [
+      '/c',
+      'carbon-now',
+      'temp.txt',
+      '--save-to',
+      '.out',
+      '--settings',
+      settingsString
+    ], { stdio: 'inherit' });
+  } else {
+    // macOS/Linux: spawnSync('carbon-now', [...])
+    carbonResult = spawnSync('carbon-now', [
+      'temp.txt',
+      '--save-to',
+      '.out',
+      '--settings',
+      settingsString
+    ], { stdio: 'inherit' });
+  }
 
   if (carbonResult.status !== 0) {
     console.error('[ERROR] An error occurred while running carbon-now.');
@@ -91,7 +88,7 @@ for (const chunk of data) {
     process.exit(1);
   }
 
-  // 3.3 Удаляем временный файл (или можно не удалять — если хотите посмотреть содержимое)
+  // Удаляем временный файл
   if (fs.existsSync(TEMP_FILE)) {
     fs.unlinkSync(TEMP_FILE);
   }
