@@ -6,7 +6,7 @@ const path = require('path');
 const isWindows = process.platform === 'win32';
 
 // Основные пути
-const OUTPUT_DIR = path.join(__dirname, '../.out');
+const OUTPUT_DIR = path.join(__dirname, '../out');
 const TEMP_FILE = path.join(__dirname, '../temp.txt');
 const PHRASES_FILE = path.join(__dirname, '../phrases.txt');
 const DEFAULT_SETTINGS_FILE = path.join(__dirname, 'default-settings.json');
@@ -18,7 +18,7 @@ if (fs.existsSync(carbonNowConfig)) {
   fs.rmSync(carbonNowConfig, { force: true });
 }
 
-// 1. Очищаем и пересоздаём каталог .out
+// 1. Очищаем и пересоздаём каталог out
 if (fs.existsSync(OUTPUT_DIR)) {
   fs.rmSync(OUTPUT_DIR, { recursive: true, force: true });
 }
@@ -67,7 +67,7 @@ for (const chunk of data) {
       'carbon-now',
       'temp.txt',
       '--save-to',
-      '.out',
+      'out',
       '--settings',
       settingsString
     ], { stdio: 'inherit' });
@@ -76,7 +76,7 @@ for (const chunk of data) {
     carbonResult = spawnSync('carbon-now', [
       'temp.txt',
       '--save-to',
-      '.out',
+      'out',
       '--settings',
       settingsString
     ], { stdio: 'inherit' });
