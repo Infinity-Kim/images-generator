@@ -9,7 +9,7 @@ const isWindows = process.platform === 'win32';
 const OUTPUT_DIR = path.join(__dirname, '../.out');
 const TEMP_FILE = path.join(__dirname, '../temp.txt');
 const PHRASES_FILE = path.join(__dirname, '../phrases.txt');
-const DEFAULT_SETTINGS_FILE = path.join(__dirname, 'default-setting.json');
+const DEFAULT_SETTINGS_FILE = path.join(__dirname, 'default-settings.json');
 const USER_SETTINGS_FILE = path.join(__dirname, 'settings.json');
 
 // Удаляем ~/.carbon-now.json в начале (если нужно)
