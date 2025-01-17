@@ -73,7 +73,9 @@ for (const chunk of data) {
     ], { stdio: 'inherit' });
   } else {
     // macOS/Linux: spawnSync('carbon-now', [...])
-    carbonResult = spawnSync('carbon-now', [
+    carbonResult = spawnSync('/bin/sh', [
+      '-c',
+      'carbon-now',
       'temp.txt',
       '--save-to',
       'out',
