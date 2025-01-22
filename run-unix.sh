@@ -2,7 +2,7 @@
 set -e
 
 echo "Running Node.js script..."
-node ./.config/main.js
+node ./.config/main-unix.js
 
 echo
 echo "==============================================="

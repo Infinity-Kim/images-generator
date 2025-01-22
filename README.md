@@ -40,11 +40,20 @@ images-generate/
    ```
    Если версия ниже 18, обновитесь по ссылке https://nodejs.org/en.
 
+
 2. Установите carbon-now-cli:
 
    ```bash
    npm install -g carbon-now-cli
    ```
+   
+   После установки После установки на macOS/Linux можно выполнить:
+       
+   ```bash
+   which carbon-now
+   ```
+   
+   Чтобы убедиться, что утилита действительно доступна в PATH.
 
 ## Использование
 
@@ -58,16 +67,28 @@ run-win.bat
 
 ### Запуск на Unix (macOS/Linux)
 
-Выдайте права на исполнение для скрипта:
+1. Выдайте права на исполнение для скрипта:
 
-```bash
-chmod +x run-unix.sh
-```
+   ```bash
+   chmod +x run-unix.sh
+   ```
 
-Запустите его из терминала:
+2. Убедитесь, что файл не находится под карантином macOS. Для проверки выполните:
 
-```bash
-./run-unix.sh
-```
+   ```bash
+   xattr run-unix.sh
+   ```
+   
+   Если в списке есть com.apple.quarantine, удалите этот атрибут:
+   
+   ```bash
+   xattr -d com.apple.quarantine run-unix.sh
+   ````
+
+3. Запустите его из терминала:
+
+   ```bash
+   ./run-unix.sh
+   ```
 
 В результате будут сгенерированы изображения на основе содержимого phrases.txt, а все файлы сохранятся в папку out

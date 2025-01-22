@@ -3,8 +3,6 @@ const os = require('os');
 const { spawnSync } = require('child_process');
 const path = require('path');
 
-const isWindows = process.platform === 'win32';
-
 // Основные пути
 const OUTPUT_DIR = path.join(__dirname, '../out');
 const TEMP_FILE = path.join(__dirname, '../temp.txt');
@@ -39,6 +37,30 @@ if (fs.existsSync(USER_SETTINGS_FILE)) {
 // 4. Подготавливаем строку настроек
 const settingsString = JSON.stringify(defaultSettings);
 
+/**
+ * Формирует название файла из первых N слов текста.
+ * - Разрешаем латиницу, кириллицу, цифры, подчёркивания, дефисы.
+ * - Всё остальное вырезаем из слова.
+ * - Если после вырезания слово пустое, пропускаем его.
+ * - Склеиваем слова через нижнее подчеркивание и добавляем .png
+ */
+function makeFileNameFromChunk(chunk, wordLimit = 6) {
+  const words = chunk
+      // Разделяем по пробельным символам
+      .split(/\s+/)
+      // Берём только первые N слов
+      .slice(0, wordLimit)
+      // Очищаем слово от символов, не являющихся
+      // латиницей, кириллицей, цифрами, подчёркиваниями или дефисами
+      .map(word => word.replace(/[^a-zA-Zа-яА-ЯёЁ0-9_-]/g, ''))
+      // Исключаем пустые слова (после вырезания пунктуации
+      // может оказаться, что слово стало '')
+      .filter(Boolean);
+
+  // Если все слова оказались пустыми, fallback = 'snippet'
+  return words.join('_') || 'snippet';
+}
+
 // 5. Считываем phrases.txt и разбиваем по разделителю ===DELIMITER===
 const rawContent = fs.readFileSync(PHRASES_FILE, 'utf8');
 const data = rawContent.split('===DELIMITER===');
@@ -57,32 +79,21 @@ for (const chunk of data) {
 
   fs.writeFileSync(TEMP_FILE, trimmed, 'utf8');
 
+  // Генерируем имя файла
+  const saveAsName = makeFileNameFromChunk(trimmed) + '_' + processed;
+
   // В зависимости от платформы вызываем команду
-  let carbonResult;
-  
-  if (isWindows) {
-    // Windows: spawnSync('cmd','/c','carbon-now', ...)
-    carbonResult = spawnSync('cmd', [
-      '/c',
-      'carbon-now',
-      'temp.txt',
-      '--save-to',
-      'out',
-      '--settings',
-      settingsString
-    ], { stdio: 'inherit' });
-  } else {
-    // macOS/Linux: spawnSync('carbon-now', [...])
-    carbonResult = spawnSync('/bin/sh', [
-      '-c',
-      'carbon-now',
-      'temp.txt',
-      '--save-to',
-      'out',
-      '--settings',
-      settingsString
-    ], { stdio: 'inherit' });
-  }
+  const carbonResult = spawnSync('cmd', [
+    '/c',
+    'carbon-now',
+    'temp.txt',
+    '--save-to',
+    'out',
+    '--save-as',
+    saveAsName,
+    '--settings',
+    settingsString
+  ], { stdio: 'inherit' });
 
   if (carbonResult.status !== 0) {
     console.error('[ERROR] An error occurred while running carbon-now.');
